@@ -1,7 +1,6 @@
 package pmapreduce
 
 import (
-	"fmt"
 	"gopkg.in/yaml.v3"
 	"log"
 )
@@ -62,6 +61,21 @@ func prepPipeline(pYaml string) pipeline {
 }
 func RunPipeline(pYaml string, in *interface{}) *interface{} {
 	p := prepPipeline(pYaml)
-	fmt.Println(p)
-	return nil
+
+	result := in
+	for _, el := range p {
+		channels := make([]chan(*interface{}), len(el.pmappers), len(el.pmappers))
+		for i, mapper := range el.pmappers {
+			channels[i] = make(chan(*interface{}))
+			go func(){
+				channels[i] <- mapper(result)
+			}()
+		}
+		mapped := make([]*interface{}, len(el.pmappers), len(el.pmappers))
+		for i, ch := range channels {
+			mapped[i] = <- ch
+		}
+		result = el.reducer(mapped)
+	}
+	return result
 }
