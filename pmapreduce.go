@@ -8,46 +8,47 @@ import (
 var PMapperRepo map[string]func(*interface{}) *interface{}
 var ReducerRepo map[string]func([]*interface{}) *interface{}
 
-type pipelineDefWrapper struct {
-	pipelineDef []struct {
-		pipelineDefEl struct {
-			pmappers []string `yaml:"pmappers"`
-			reducer  string   `yaml:"reducer"`
-		} `yaml:"pipelineDef-el"`
-	} `yaml:"pipelineDef"`
+type PipelineDefWrapper struct {
+	PipelineDef []struct {
+		PipelineDefEl struct {
+			Pmappers []string `yaml:"pmappers"`
+			Reducer  string   `yaml:"reducer"`
+		} `yaml:"pipeline-el"`
+	} `yaml:"pipeline"`
 }
 
-type pipeline []struct {
+type pipelineEl struct {
 	pmappers []func(*interface{}) *interface{}
 	reducer  func([]*interface{}) *interface{}
 }
+type pipeline []pipelineEl
 
 func First(in []*interface{}) *interface{} {
 	return in[0]
 }
 
 func prepPipeline(pYaml string) pipeline {
-	unmarshalled := pipelineDefWrapper{}
+	unmarshalled := PipelineDefWrapper{}
 	err := yaml.Unmarshal([]byte(pYaml), &unmarshalled)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
 
-	var p pipeline
+	var p pipeline = make([]pipelineEl, len(unmarshalled.PipelineDef), len(unmarshalled.PipelineDef))
 
-	for index, pEl := range unmarshalled.pipelineDef {
-		pmappers := make([]func(*interface{}) *interface{}, len(pEl.pipelineDefEl.pmappers),
-			len(pEl.pipelineDefEl.pmappers))
-		for _, pmapperId := range pEl.pipelineDefEl.pmappers {
+	for index, pEl := range unmarshalled.PipelineDef {
+		pmappers := make([]func(*interface{}) *interface{}, len(pEl.PipelineDefEl.Pmappers),
+			len(pEl.PipelineDefEl.Pmappers))
+		for innerIndex, pmapperId := range pEl.PipelineDefEl.Pmappers {
 			if pmapper, ok := PMapperRepo[pmapperId]; ok {
-				pmappers = append(pmappers, pmapper)
+				pmappers[innerIndex] = pmapper
 			} else {
 				log.Fatalf("mapped id=" + pmapperId + " isn't registered!")
 			}
 		}
-		reducer, ok := ReducerRepo[pEl.pipelineDefEl.reducer]
+		reducer, ok := ReducerRepo[pEl.PipelineDefEl.Reducer]
 		if !ok {
-			log.Fatalf("reducer id=" + pEl.pipelineDefEl.reducer + " isn't registered!")
+			log.Fatalf("Reducer id=" + pEl.PipelineDefEl.Reducer + " isn't registered!")
 		}
 		p[index] = struct {
 			pmappers []func(*interface{}) *interface{}
@@ -66,10 +67,12 @@ func RunPipeline(pYaml string, in *interface{}) *interface{} {
 	for _, el := range p {
 		channels := make([]chan(*interface{}), len(el.pmappers), len(el.pmappers))
 		for i, mapper := range el.pmappers {
-			channels[i] = make(chan(*interface{}))
-			go func(){
-				channels[i] <- mapper(result)
-			}()
+			channels[i] = make(chan (*interface{}))
+			go func(index int, mapper func(*interface{})*interface{}){
+				mapperResult := mapper(result)
+
+				channels[index] <- mapperResult
+			}(i, mapper)
 		}
 		mapped := make([]*interface{}, len(el.pmappers), len(el.pmappers))
 		for i, ch := range channels {

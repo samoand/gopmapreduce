@@ -11,37 +11,39 @@ func initialize() {
 	data = `
 ---
 pipeline:
-  - pipeline-el:
-    pmappers:
-      - sumMapper0
-      - sumMapper1
-      - sumMapper2
-      - sumMapper3
-	reducer: sumOfMapped
-  - pipeline-el:
-    pmappers:
-      - mul2
-      - mul4
-    reducer: product
-`
+    - pipeline-el:
+        pmappers:
+            - sumMapper0
+            - sumMapper1
+            - sumMapper2
+            - sumMapper3
+        reducer: sumOfMapped
+    - pipeline-el:
+        pmappers:
+            - mul2
+            - mul4
+        reducer: product`
+	PMapperRepo = make(map[string]func(*interface{}) *interface{})
+	ReducerRepo = make(map[string]func([]*interface{}) *interface{})
 	PMapperRepo["sumMapper0"] = sumMapper0
 	PMapperRepo["sumMapper1"] = sumMapper1
 	PMapperRepo["sumMapper2"] = sumMapper2
 	PMapperRepo["sumMapper3"] = sumMapper3
 	ReducerRepo["sumOfMapped"] = sumOfMapped
 
-
-	PMapperRepo["sumMapper3"] = sumMapper3
+	PMapperRepo["mul2"] = mul2
+	PMapperRepo["mul4"] = mul4
+	ReducerRepo["product"] = product
 }
 
 type PipelineIn struct {
-	first  int
-	last int
+	first int
+	last  int
 	parts int
 }
 
 func partialSeqSum(first, last, parts, partNum int) int {
-	increment := (last - first)/parts
+	increment := (last - first) / parts
 	subFirst := increment * partNum
 	subLast := subFirst + increment
 	total := 0
@@ -87,7 +89,6 @@ func sumOfMapped(aIn []*interface{}) *interface{} {
 	return &result
 }
 
-
 func mul(aIn *interface{}, multiplier int) *interface{} {
 	in := (*aIn).(int)
 	var result interface{}
@@ -103,7 +104,7 @@ func mul4(aIn *interface{}) *interface{} {
 	return mul(aIn, 4)
 }
 
-func product(aIn  []*interface{}) *interface{} {
+func product(aIn []*interface{}) *interface{} {
 	p := 1
 	for _, el := range aIn {
 		num := (*el).(int)
@@ -114,17 +115,22 @@ func product(aIn  []*interface{}) *interface{} {
 	return &result
 }
 
+const LAST = 40000
+
 func TestRunPipeline(t *testing.T) {
 	initialize()
 
-	pipeline := PipelineIn{
+	pipelineInput := PipelineIn{
 		first: 0,
-		last: 4000000,
+		last:  LAST,
 		parts: 4,
 	}
 	var in interface{}
-	in = pipeline
+	in = pipelineInput
 	pipelineResult := RunPipeline(data, &in)
-	plainResult := partialSeqSum(0, 4000000, 1, 0) * 8
-	assert.Equal(t, pipelineResult, plainResult)
+	// below is the simplified way of calculating same thing.
+	// that's what the chain does, in essense.
+	plainPrelim := partialSeqSum(0, LAST, 1, 0)
+	plainResult :=  plainPrelim * plainPrelim * 8
+	assert.Equal(t, (*pipelineResult).(int), plainResult)
 }
