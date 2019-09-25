@@ -27,6 +27,10 @@ func First(in []interface{}) interface{} {
 	return in[0]
 }
 
+func Noop(in interface{}) interface{} {
+	return in
+}
+
 func prepPipeline(pYaml string) pipeline {
 	unmarshalled := PipelineDefWrapper{}
 	err := yaml.Unmarshal([]byte(pYaml), &unmarshalled)
