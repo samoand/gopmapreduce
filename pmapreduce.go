@@ -5,8 +5,8 @@ import (
 	"log"
 )
 
-var PMapperRepo map[string]func(*interface{}) *interface{}
-var ReducerRepo map[string]func([]*interface{}) *interface{}
+var PMapperRepo map[string]func(interface{}) interface{}
+var ReducerRepo map[string]func([]interface{}) interface{}
 
 type PipelineDefWrapper struct {
 	PipelineDef []struct {
@@ -18,12 +18,12 @@ type PipelineDefWrapper struct {
 }
 
 type pipelineEl struct {
-	pmappers []func(*interface{}) *interface{}
-	reducer  func([]*interface{}) *interface{}
+	pmappers []func(interface{}) interface{}
+	reducer  func([]interface{}) interface{}
 }
 type pipeline []pipelineEl
 
-func First(in []*interface{}) *interface{} {
+func First(in []interface{}) interface{} {
 	return in[0]
 }
 
@@ -37,7 +37,7 @@ func prepPipeline(pYaml string) pipeline {
 	var p pipeline = make([]pipelineEl, len(unmarshalled.PipelineDef), len(unmarshalled.PipelineDef))
 
 	for index, pEl := range unmarshalled.PipelineDef {
-		pmappers := make([]func(*interface{}) *interface{}, len(pEl.PipelineDefEl.Pmappers),
+		pmappers := make([]func(interface{}) interface{}, len(pEl.PipelineDefEl.Pmappers),
 			len(pEl.PipelineDefEl.Pmappers))
 		for innerIndex, pmapperId := range pEl.PipelineDefEl.Pmappers {
 			if pmapper, ok := PMapperRepo[pmapperId]; ok {
@@ -51,8 +51,8 @@ func prepPipeline(pYaml string) pipeline {
 			log.Fatalf("Reducer id=" + pEl.PipelineDefEl.Reducer + " isn't registered!")
 		}
 		p[index] = struct {
-			pmappers []func(*interface{}) *interface{}
-			reducer  func([]*interface{}) *interface{}
+			pmappers []func(interface{}) interface{}
+			reducer  func([]interface{}) interface{}
 		}{
 			pmappers,
 			reducer,
@@ -60,21 +60,21 @@ func prepPipeline(pYaml string) pipeline {
 	}
 	return p
 }
-func RunPipeline(pYaml string, in *interface{}) *interface{} {
+func RunPipeline(pYaml string, in interface{}) interface{} {
 	p := prepPipeline(pYaml)
 
 	result := in
 	for _, el := range p {
-		channels := make([]chan(*interface{}), len(el.pmappers), len(el.pmappers))
+		channels := make([]chan(interface{}), len(el.pmappers), len(el.pmappers))
 		for i, mapper := range el.pmappers {
-			channels[i] = make(chan (*interface{}))
-			go func(index int, mapper func(*interface{})*interface{}){
+			channels[i] = make(chan interface{})
+			go func(index int, mapper func(interface{})interface{}){
 				mapperResult := mapper(result)
 
 				channels[index] <- mapperResult
 			}(i, mapper)
 		}
-		mapped := make([]*interface{}, len(el.pmappers), len(el.pmappers))
+		mapped := make([]interface{}, len(el.pmappers), len(el.pmappers))
 		for i, ch := range channels {
 			mapped[i] = <- ch
 		}
