@@ -97,17 +97,22 @@ func mul(aIn interface{}, multiplier int) interface{} {
 }
 
 func mul2(aIn interface{}) interface{} {
-	return mul(aIn, 2)
+	result := mul(aIn, 2)
+	return &result // '*' to illustrate how the framework would work with pointers
 }
 
 func mul4(aIn interface{}) interface{} {
-	return mul(aIn, 4)
+	result := mul(aIn, 4)
+	return &result // '*' to illustrate how the framework would work with pointers
 }
 
 func product(aIn []interface{}) interface{} {
 	p := 1
 	for _, el := range aIn {
-		num := el.(int)
+		// mappers used '*' to illustrate how it would work with pointers
+		// dereferencing below
+		dereferenced := * el.(*interface{})
+		num := dereferenced.(int)
 		p *= num
 	}
 	var result interface{}
