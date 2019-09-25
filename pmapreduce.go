@@ -23,11 +23,15 @@ type pipelineEl struct {
 }
 type pipeline []pipelineEl
 
-func First(in []interface{}) interface{} {
+func ReduceToFirst(in []interface{}) interface{} {
 	return in[0]
 }
 
-func Noop(in interface{}) interface{} {
+func ReduceToNone(in []interface{}) interface{} {
+	return nil
+}
+
+func MapperNoop(in interface{}) interface{} {
 	return in
 }
 
