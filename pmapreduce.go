@@ -35,9 +35,9 @@ func MapperNoop(in interface{}) interface{} {
 	return in
 }
 
-func prepPipeline(pYaml string) pipeline {
+func prepPipeline(pYaml []byte) pipeline {
 	unmarshalled := PipelineDefWrapper{}
-	err := yaml.Unmarshal([]byte(pYaml), &unmarshalled)
+	err := yaml.Unmarshal(pYaml, &unmarshalled)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
@@ -68,7 +68,7 @@ func prepPipeline(pYaml string) pipeline {
 	}
 	return p
 }
-func RunPipeline(pYaml string, in interface{}) interface{} {
+func RunPipeline(pYaml []byte, in interface{}) interface{} {
 	p := prepPipeline(pYaml)
 
 	result := in

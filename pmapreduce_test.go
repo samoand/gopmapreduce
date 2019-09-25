@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-var data string
+var data []byte
 
 func initialize() {
-	data = `
+	data = []byte(`
 ---
 pipeline:
     - pipeline-el:
@@ -22,7 +22,7 @@ pipeline:
         pmappers:
             - mul2
             - mul4
-        reducer: product`
+        reducer: product`)
 	PMapperRepo = make(map[string]func(interface{}) interface{})
 	ReducerRepo = make(map[string]func([]interface{}) interface{})
 	PMapperRepo["sumMapper0"] = sumMapper0
